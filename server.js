@@ -3,6 +3,9 @@ const cors = require("cors");
 require("dotenv").config();
 
 const db = require("./config/db");
+const authRoutes = require("./routes/auth");
+const { authenticate } = require("./middleware/auth");
+const ticketRoutes = require("./routes/tickets");
 
 const app = express();
 const PORT = 3000;
@@ -10,6 +13,12 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
+app.use("/api/auth", authRoutes);
+app.use("/api/tickets", ticketRoutes);
+
+app.get("/api/me", authenticate, (req, res) => {
+	res.json({ message: "You are authenticated", user: req.user });
+});
 
 app.get("/api/health", async (req, res) => {
 	try {
