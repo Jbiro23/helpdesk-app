@@ -1,0 +1,127 @@
+requireAuth();
+
+const currentUser = getUser();
+document.getElementById("user-name").textContent =
+	currentUser.first_name + " " + currentUser.last_name;
+document.getElementById("logout-btn").addEventListener("click", logout);
+
+const backLink = document.getElementById("back-link");
+backLink.href = currentUser.role === "agent" ? "agent.html" : "tickets.html";
+
+const params = new URLSearchParams(window.location.search);
+const ticketId = params.get("id");
+
+const alertBox = document.getElementById("alert");
+
+const statusLabels = {
+	otvorena: "Otvorena",
+	u_obradi: "U obradi",
+	zatvorena: "Zatvorena",
+};
+const statusClasses = {
+	otvorena: "bg-success",
+	u_obradi: "bg-warning text-dark",
+	zatvorena: "bg-secondary",
+};
+const priorityLabels = {
+	nizak: "Nizak",
+	srednji: "Srednji",
+	visok: "Visok",
+	kriticni: "Kritični",
+};
+
+function showAlert(message, type) {
+	alertBox.textContent = message;
+	alertBox.className = "alert alert-" + type;
+}
+
+function formatDate(dateString) {
+	const date = new Date(dateString);
+	return (
+		date.toLocaleDateString("hr-HR") +
+		" " +
+		date.toLocaleTimeString("hr-HR", { hour: "2-digit", minute: "2-digit" })
+	);
+}
+
+async function loadTicket() {
+	try {
+		const ticket = await apiRequest("/tickets/" + ticketId);
+
+		document.getElementById("ticket-title").textContent = ticket.title;
+		document.getElementById("ticket-description").textContent =
+			ticket.description;
+		document.getElementById("ticket-category").textContent =
+			ticket.category || "-";
+		document.getElementById("ticket-priority").textContent =
+			priorityLabels[ticket.priority];
+
+		const statusBadge = document.getElementById("ticket-status");
+		statusBadge.textContent = statusLabels[ticket.status];
+		statusBadge.className = "badge " + statusClasses[ticket.status];
+
+		if (currentUser.role === "agent") {
+			document.getElementById("ticket-author").textContent =
+				ticket.author_first_name + " " + ticket.author_last_name;
+		} else {
+			document.getElementById("ticket-author-wrap").classList.add("d-none");
+		}
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+}
+
+async function loadMessages() {
+	try {
+		const messages = await apiRequest("/tickets/" + ticketId + "/messages");
+		const container = document.getElementById("messages");
+		container.innerHTML = "";
+
+		if (messages.length === 0) {
+			container.innerHTML = '<p class="text-muted small">Još nema poruka.</p>';
+			return;
+		}
+
+		messages.forEach((msg) => {
+			const isMine = msg.sender_id === currentUser.id;
+			const isAgent = msg.role === "agent";
+
+			const wrapper = document.createElement("div");
+			wrapper.className = "card mb-2 " + (isAgent ? "border-primary" : "");
+
+			wrapper.innerHTML = `
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between">
+                        <strong class="small">${msg.first_name} ${msg.last_name}${isAgent ? " (agent)" : ""}</strong>
+                        <span class="small text-muted">${formatDate(msg.created_at)}</span>
+                    </div>
+                    <div>${msg.content}</div>
+                </div>
+            `;
+
+			container.appendChild(wrapper);
+		});
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+}
+
+document.getElementById("send-btn").addEventListener("click", async () => {
+	const content = document.getElementById("message-content").value.trim();
+
+	if (!content) {
+		showAlert("Poruka ne može biti prazna.", "warning");
+		return;
+	}
+
+	try {
+		await apiRequest("/tickets/" + ticketId + "/messages", "POST", { content });
+		document.getElementById("message-content").value = "";
+		await loadMessages();
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+});
+
+loadTicket();
+loadMessages();
