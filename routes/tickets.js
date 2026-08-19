@@ -229,4 +229,15 @@ router.post("/:id/messages", authenticate, async (req, res) => {
 	}
 });
 
+router.get("/meta/categories", authenticate, async (req, res) => {
+	try {
+		const [categories] = await db.query(
+			"SELECT id, name FROM categories ORDER BY name",
+		);
+		res.json(categories);
+	} catch (error) {
+		res.status(500).json({ message: "Server error", details: error.message });
+	}
+});
+
 module.exports = router;

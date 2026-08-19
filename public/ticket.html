@@ -55,6 +55,60 @@
 						</div>
 					</div>
 
+					<div class="card mb-4 d-none" id="agent-controls">
+						<div class="card-body">
+							<h6 class="mb-3">Kontrole agenta</h6>
+
+							<div class="mb-3" id="assign-wrap">
+								<button
+									type="button"
+									id="assign-btn"
+									class="btn btn-success btn-sm"
+								>
+									Preuzmi ulaznicu
+								</button>
+								<span class="small text-muted ms-2" id="assigned-info"></span>
+							</div>
+
+							<div class="row g-2">
+								<div class="col-md-4">
+									<label class="form-label small">Status</label>
+									<select id="status-select" class="form-select form-select-sm">
+										<option value="otvorena">Otvorena</option>
+										<option value="u_obradi">U obradi</option>
+										<option value="zatvorena">Zatvorena</option>
+									</select>
+								</div>
+								<div class="col-md-4">
+									<label class="form-label small">Kategorija</label>
+									<select
+										id="category-select"
+										class="form-select form-select-sm"
+									></select>
+								</div>
+								<div class="col-md-4">
+									<label class="form-label small">Prioritet</label>
+									<select
+										id="priority-select"
+										class="form-select form-select-sm"
+									>
+										<option value="nizak">Nizak</option>
+										<option value="srednji">Srednji</option>
+										<option value="visok">Visok</option>
+										<option value="kriticni">Kritični</option>
+									</select>
+								</div>
+							</div>
+							<button
+								type="button"
+								id="save-changes-btn"
+								class="btn btn-primary btn-sm mt-3"
+							>
+								Spremi promjene
+							</button>
+						</div>
+					</div>
+
 					<h6 class="mb-3">Komunikacija</h6>
 					<div id="messages" class="mb-3"></div>
 

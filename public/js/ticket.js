@@ -125,3 +125,77 @@ document.getElementById("send-btn").addEventListener("click", async () => {
 
 loadTicket();
 loadMessages();
+
+async function setupAgentControls() {
+	if (currentUser.role !== "agent") {
+		return;
+	}
+
+	const controls = document.getElementById("agent-controls");
+	controls.classList.remove("d-none");
+
+	try {
+		const categories = await apiRequest("/tickets/meta/categories");
+		const categorySelect = document.getElementById("category-select");
+		categorySelect.innerHTML = '<option value="">-</option>';
+		categories.forEach((cat) => {
+			const option = document.createElement("option");
+			option.value = cat.id;
+			option.textContent = cat.name;
+			categorySelect.appendChild(option);
+		});
+
+		const ticket = await apiRequest("/tickets/" + ticketId);
+		document.getElementById("status-select").value = ticket.status;
+		document.getElementById("priority-select").value = ticket.priority;
+		if (ticket.category_id) {
+			categorySelect.value = ticket.category_id;
+		}
+
+		const assignInfo = document.getElementById("assigned-info");
+		if (ticket.agent_id) {
+			assignInfo.textContent =
+				ticket.agent_id === currentUser.id
+					? "Dodijeljena vama"
+					: "Dodijeljena drugom agentu";
+		} else {
+			assignInfo.textContent = "Nije dodijeljena";
+		}
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+}
+
+document.getElementById("assign-btn").addEventListener("click", async () => {
+	try {
+		await apiRequest("/tickets/" + ticketId + "/assign", "PUT");
+		showAlert("Ulaznica je preuzeta.", "success");
+		await loadTicket();
+		await setupAgentControls();
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+});
+
+document
+	.getElementById("save-changes-btn")
+	.addEventListener("click", async () => {
+		const status = document.getElementById("status-select").value;
+		const category_id =
+			document.getElementById("category-select").value || null;
+		const priority = document.getElementById("priority-select").value;
+
+		try {
+			await apiRequest("/tickets/" + ticketId + "/status", "PUT", { status });
+			await apiRequest("/tickets/" + ticketId, "PUT", {
+				category_id,
+				priority,
+			});
+			showAlert("Promjene su spremljene.", "success");
+			await loadTicket();
+		} catch (error) {
+			showAlert(error.message, "danger");
+		}
+	});
+
+setupAgentControls();
