@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../config/db");
 const { authenticate, requireAgent } = require("../middleware/auth");
+const { classifyTicket } = require("../config/aiService");
 
 const router = express.Router();
 
@@ -33,9 +34,21 @@ router.post("/", authenticate, async (req, res) => {
 			[req.user.id, title, description],
 		);
 
+		const ticketId = result.insertId;
+
+		try {
+			const suggestion = await classifyTicket(title, description);
+			await db.query(
+				"UPDATE tickets SET category_id = ?, priority = ? WHERE id = ?",
+				[suggestion.category_id, suggestion.priority, ticketId],
+			);
+		} catch (aiError) {
+			console.error("AI classification failed:", aiError.message);
+		}
+
 		res.status(201).json({
 			message: "Ticket created successfully",
-			ticketId: result.insertId,
+			ticketId: ticketId,
 		});
 	} catch (error) {
 		res.status(500).json({ message: "Server error", details: error.message });
