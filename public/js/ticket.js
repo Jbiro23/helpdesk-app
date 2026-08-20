@@ -199,3 +199,27 @@ document
 	});
 
 setupAgentControls();
+
+if (currentUser.role === "agent") {
+	const aiDraftBtn = document.getElementById("ai-draft-btn");
+	aiDraftBtn.classList.remove("d-none");
+
+	aiDraftBtn.addEventListener("click", async () => {
+		const originalText = aiDraftBtn.textContent;
+		aiDraftBtn.disabled = true;
+		aiDraftBtn.textContent = "Generiram...";
+
+		try {
+			const data = await apiRequest(
+				"/tickets/" + ticketId + "/ai-draft",
+				"POST",
+			);
+			document.getElementById("message-content").value = data.draft;
+		} catch (error) {
+			showAlert(error.message, "danger");
+		} finally {
+			aiDraftBtn.disabled = false;
+			aiDraftBtn.textContent = originalText;
+		}
+	});
+}

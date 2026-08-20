@@ -37,4 +37,27 @@ Odgovori isključivo u JSON formatu bez dodatnog teksta, prema obrascu:
 	};
 }
 
-module.exports = { classifyTicket };
+async function generateReplyDraft(ticket, messages) {
+	const conversation = messages
+		.map((m) => `${m.role === "agent" ? "Agent" : "Korisnik"}: ${m.content}`)
+		.join("\n");
+
+	const prompt = `Ti si agent korisničke podrške. Na temelju ulaznice i dosadašnje komunikacije sastavi prijedlog profesionalnog i ljubaznog odgovora korisniku na hrvatskom jeziku.
+
+Naslov ulaznice: ${ticket.title}
+Opis problema: ${ticket.description}
+
+Dosadašnja komunikacija:
+${conversation || "Još nema poruka."}
+
+Sastavi samo tekst odgovora korisniku, bez pozdrava tipa potpisa agenta i bez dodatnih objašnjenja.`;
+
+	const completion = await openai.chat.completions.create({
+		model: "gpt-4o-mini",
+		messages: [{ role: "user", content: prompt }],
+	});
+
+	return completion.choices[0].message.content.trim();
+}
+
+module.exports = { classifyTicket, generateReplyDraft };

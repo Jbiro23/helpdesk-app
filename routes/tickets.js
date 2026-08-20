@@ -1,7 +1,7 @@
 const express = require("express");
 const db = require("../config/db");
 const { authenticate, requireAgent } = require("../middleware/auth");
-const { classifyTicket } = require("../config/aiService");
+const { classifyTicket, generateReplyDraft } = require("../config/aiService");
 
 const router = express.Router();
 
@@ -250,6 +250,33 @@ router.get("/meta/categories", authenticate, async (req, res) => {
 		res.json(categories);
 	} catch (error) {
 		res.status(500).json({ message: "Server error", details: error.message });
+	}
+});
+
+router.post("/:id/ai-draft", authenticate, requireAgent, async (req, res) => {
+	try {
+		const [tickets] = await db.query("SELECT * FROM tickets WHERE id = ?", [
+			req.params.id,
+		]);
+		if (tickets.length === 0) {
+			return res.status(404).json({ message: "Ticket not found" });
+		}
+
+		const [messages] = await db.query(
+			`SELECT m.content, u.role
+             FROM messages m
+             JOIN users u ON m.sender_id = u.id
+             WHERE m.ticket_id = ? AND m.is_ai_draft = FALSE
+             ORDER BY m.created_at ASC`,
+			[req.params.id],
+		);
+
+		const draft = await generateReplyDraft(tickets[0], messages);
+		res.json({ draft });
+	} catch (error) {
+		res
+			.status(500)
+			.json({ message: "AI draft generation failed", details: error.message });
 	}
 });
 
