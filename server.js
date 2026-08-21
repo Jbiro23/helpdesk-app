@@ -6,6 +6,7 @@ const db = require("./config/db");
 const authRoutes = require("./routes/auth");
 const { authenticate } = require("./middleware/auth");
 const ticketRoutes = require("./routes/tickets");
+const knowledgeRoutes = require("./routes/knowledge");
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(express.static("public"));
 app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api/knowledge", knowledgeRoutes);
 
 app.get("/api/me", authenticate, (req, res) => {
 	res.json({ message: "You are authenticated", user: req.user });

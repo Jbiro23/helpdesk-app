@@ -60,4 +60,12 @@ Sastavi samo tekst odgovora korisniku, bez pozdrava tipa potpisa agenta i bez do
 	return completion.choices[0].message.content.trim();
 }
 
-module.exports = { classifyTicket, generateReplyDraft };
+async function generateEmbedding(text) {
+	const response = await openai.embeddings.create({
+		model: "text-embedding-3-small",
+		input: text,
+	});
+	return response.data[0].embedding;
+}
+
+module.exports = { classifyTicket, generateReplyDraft, generateEmbedding };
