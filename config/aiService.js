@@ -42,7 +42,17 @@ async function generateReplyDraft(ticket, messages) {
 		.map((m) => `${m.role === "agent" ? "Agent" : "Korisnik"}: ${m.content}`)
 		.join("\n");
 
-	const prompt = `Ti si agent korisničke podrške. Na temelju ulaznice i dosadašnje komunikacije sastavi prijedlog profesionalnog i ljubaznog odgovora korisniku na hrvatskom jeziku.
+	const searchQuery = ticket.title + "\n" + ticket.description;
+	const relevantArticles = await findRelevantArticles(searchQuery, 3);
+
+	let knowledgeContext = "";
+	if (relevantArticles.length > 0) {
+		knowledgeContext = relevantArticles
+			.map((a, i) => `Članak ${i + 1} (${a.title}):\n${a.content}`)
+			.join("\n\n");
+	}
+
+	const prompt = `Ti si agent korisničke podrške. Na temelju ulaznice, dosadašnje komunikacije i relevantnih članaka iz baze znanja sastavi prijedlog profesionalnog i ljubaznog odgovora korisniku na hrvatskom jeziku.
 
 Naslov ulaznice: ${ticket.title}
 Opis problema: ${ticket.description}
@@ -50,7 +60,10 @@ Opis problema: ${ticket.description}
 Dosadašnja komunikacija:
 ${conversation || "Još nema poruka."}
 
-Sastavi samo tekst odgovora korisniku, bez pozdrava tipa potpisa agenta i bez dodatnih objašnjenja.`;
+Relevantni članci iz baze znanja:
+${knowledgeContext || "Nema relevantnih članaka."}
+
+Sastavi odgovor korisniku temeljen na informacijama iz baze znanja gdje je to primjenjivo. Vrati samo tekst odgovora, bez potpisa i bez dodatnih objašnjenja.`;
 
 	const completion = await openai.chat.completions.create({
 		model: "gpt-4o-mini",
@@ -68,4 +81,46 @@ async function generateEmbedding(text) {
 	return response.data[0].embedding;
 }
 
-module.exports = { classifyTicket, generateReplyDraft, generateEmbedding };
+function cosineSimilarity(vecA, vecB) {
+	let dotProduct = 0;
+	let normA = 0;
+	let normB = 0;
+	for (let i = 0; i < vecA.length; i++) {
+		dotProduct += vecA[i] * vecB[i];
+		normA += vecA[i] * vecA[i];
+		normB += vecB[i] * vecB[i];
+	}
+	return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function findRelevantArticles(queryText, limit = 3) {
+	const [articles] = await db.query(
+		"SELECT id, title, content, embedding FROM knowledge_base WHERE embedding IS NOT NULL",
+	);
+
+	if (articles.length === 0) {
+		return [];
+	}
+
+	const queryEmbedding = await generateEmbedding(queryText);
+
+	const scored = articles.map((article) => {
+		const articleEmbedding =
+			typeof article.embedding === "string"
+				? JSON.parse(article.embedding)
+				: article.embedding;
+		const similarity = cosineSimilarity(queryEmbedding, articleEmbedding);
+		return { title: article.title, content: article.content, similarity };
+	});
+
+	scored.sort((a, b) => b.similarity - a.similarity);
+
+	return scored.slice(0, limit);
+}
+
+module.exports = {
+	classifyTicket,
+	generateReplyDraft,
+	generateEmbedding,
+	findRelevantArticles,
+};
