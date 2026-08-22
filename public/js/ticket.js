@@ -223,3 +223,57 @@ if (currentUser.role === "agent") {
 		}
 	});
 }
+
+async function loadNotes() {
+	if (currentUser.role !== "agent") {
+		return;
+	}
+
+	try {
+		const notes = await apiRequest("/tickets/" + ticketId + "/notes");
+		const list = document.getElementById("notes-list");
+		list.innerHTML = "";
+
+		if (notes.length === 0) {
+			list.innerHTML = '<p class="text-muted small mb-0">Nema bilješki.</p>';
+			return;
+		}
+
+		notes.forEach((note) => {
+			const div = document.createElement("div");
+			div.className = "border-start border-secondary border-3 ps-2 mb-2";
+			div.innerHTML = `
+                <div class="small text-muted">${note.first_name} ${note.last_name} · ${formatDate(note.created_at)}</div>
+                <div class="small">${note.content}</div>
+            `;
+			list.appendChild(div);
+		});
+	} catch (error) {
+		showAlert(error.message, "danger");
+	}
+}
+
+if (currentUser.role === "agent") {
+	document.getElementById("notes-card").classList.remove("d-none");
+
+	document
+		.getElementById("add-note-btn")
+		.addEventListener("click", async () => {
+			const content = document.getElementById("note-content").value.trim();
+			if (!content) {
+				showAlert("Bilješka ne može biti prazna.", "warning");
+				return;
+			}
+			try {
+				await apiRequest("/tickets/" + ticketId + "/notes", "POST", {
+					content,
+				});
+				document.getElementById("note-content").value = "";
+				await loadNotes();
+			} catch (error) {
+				showAlert(error.message, "danger");
+			}
+		});
+
+	loadNotes();
+}

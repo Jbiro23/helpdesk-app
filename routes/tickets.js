@@ -280,4 +280,42 @@ router.post("/:id/ai-draft", authenticate, requireAgent, async (req, res) => {
 	}
 });
 
+router.get("/:id/notes", authenticate, requireAgent, async (req, res) => {
+	try {
+		const [notes] = await db.query(
+			`SELECT n.id, n.content, n.created_at,
+                    u.first_name, u.last_name
+             FROM ticket_notes n
+             JOIN users u ON n.agent_id = u.id
+             WHERE n.ticket_id = ?
+             ORDER BY n.created_at ASC`,
+			[req.params.id],
+		);
+		res.json(notes);
+	} catch (error) {
+		res.status(500).json({ message: "Server error", details: error.message });
+	}
+});
+
+router.post("/:id/notes", authenticate, requireAgent, async (req, res) => {
+	const { content } = req.body;
+
+	if (!content || content.trim() === "") {
+		return res.status(400).json({ message: "Note content is required" });
+	}
+
+	try {
+		const [result] = await db.query(
+			"INSERT INTO ticket_notes (ticket_id, agent_id, content) VALUES (?, ?, ?)",
+			[req.params.id, req.user.id, content],
+		);
+		res.status(201).json({
+			message: "Note added successfully",
+			noteId: result.insertId,
+		});
+	} catch (error) {
+		res.status(500).json({ message: "Server error", details: error.message });
+	}
+});
+
 module.exports = router;
