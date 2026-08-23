@@ -30,6 +30,12 @@ const priorityLabels = {
 	visok: "Visok",
 	kriticni: "Kritični",
 };
+const priorityClasses = {
+	nizak: "bg-light text-dark border",
+	srednji: "bg-info text-dark",
+	visok: "bg-warning text-dark",
+	kriticni: "bg-danger",
+};
 
 function formatDate(dateString) {
 	const date = new Date(dateString);
@@ -38,6 +44,18 @@ function formatDate(dateString) {
 		" " +
 		date.toLocaleTimeString("hr-HR", { hour: "2-digit", minute: "2-digit" })
 	);
+}
+
+function formatDateShort(dateString) {
+	const date = new Date(dateString);
+	const d = String(date.getDate()).padStart(2, "0");
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const y = date.getFullYear();
+	const time = date.toLocaleTimeString("hr-HR", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+	return `${d}.${m}.${y}. ${time}`;
 }
 
 function renderTickets() {
@@ -74,9 +92,9 @@ function renderTickets() {
             <td>${ticket.title}</td>
             <td>${ticket.author_first_name} ${ticket.author_last_name}</td>
             <td>${ticket.category || "-"}</td>
-            <td>${priorityLabels[ticket.priority]}</td>
+            <td><span class="badge ${priorityClasses[ticket.priority]}">${priorityLabels[ticket.priority]}</span></td>
             <td>${statusBadge}</td>
-            <td>${formatDate(ticket.created_at)}</td>
+            <td class="text-nowrap">${formatDateShort(ticket.created_at)}</td>
         `;
 
 		tbody.appendChild(row);
@@ -104,4 +122,27 @@ async function loadTickets() {
 	}
 }
 
+async function loadStats() {
+	try {
+		const stats = await apiRequest("/tickets/meta/stats");
+
+		document.getElementById("stat-total").textContent = stats.total;
+
+		const open = stats.byStatus.find((s) => s.status === "otvorena");
+		const progress = stats.byStatus.find((s) => s.status === "u_obradi");
+
+		document.getElementById("stat-open").textContent = open ? open.count : 0;
+		document.getElementById("stat-progress").textContent = progress
+			? progress.count
+			: 0;
+
+		const avg = stats.avgResolutionHours;
+		document.getElementById("stat-avg").textContent =
+			avg !== null ? Math.round(avg) : "-";
+	} catch (error) {
+		console.error("Stats loading failed:", error.message);
+	}
+}
+
+loadStats();
 loadTickets();

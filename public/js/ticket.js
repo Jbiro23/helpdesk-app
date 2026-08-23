@@ -5,6 +5,8 @@ document.getElementById("user-name").textContent =
 	currentUser.first_name + " " + currentUser.last_name;
 document.getElementById("logout-btn").addEventListener("click", logout);
 
+enableAutoGrow(document.getElementById("message-content"));
+
 const backLink = document.getElementById("back-link");
 backLink.href = currentUser.role === "agent" ? "agent.html" : "tickets.html";
 
@@ -28,6 +30,12 @@ const priorityLabels = {
 	srednji: "Srednji",
 	visok: "Visok",
 	kriticni: "Kritični",
+};
+const priorityClasses = {
+	nizak: "bg-light text-dark border",
+	srednji: "bg-info text-dark",
+	visok: "bg-warning text-dark",
+	kriticni: "bg-danger",
 };
 
 function showAlert(message, type) {
@@ -53,14 +61,15 @@ async function loadTicket() {
 			ticket.description;
 		document.getElementById("ticket-category").textContent =
 			ticket.category || "-";
-		document.getElementById("ticket-priority").textContent =
-			priorityLabels[ticket.priority];
+		document.getElementById("ticket-priority").innerHTML =
+			`<span class="badge ${priorityClasses[ticket.priority]}">${priorityLabels[ticket.priority]}</span>`;
 
 		const statusBadge = document.getElementById("ticket-status");
 		statusBadge.textContent = statusLabels[ticket.status];
 		statusBadge.className = "badge " + statusClasses[ticket.status];
 
 		if (currentUser.role === "agent") {
+			enableAutoGrow(document.getElementById("note-content"));
 			document.getElementById("ticket-author").textContent =
 				ticket.author_first_name + " " + ticket.author_last_name;
 		} else {
@@ -215,6 +224,9 @@ if (currentUser.role === "agent") {
 				"POST",
 			);
 			document.getElementById("message-content").value = data.draft;
+			document
+				.getElementById("message-content")
+				.dispatchEvent(new Event("input"));
 		} catch (error) {
 			showAlert(error.message, "danger");
 		} finally {

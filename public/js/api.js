@@ -53,3 +53,15 @@ async function apiRequest(path, method = "GET", body = null) {
 	}
 	return data;
 }
+
+function enableAutoGrow(textarea) {
+	if (!textarea) {
+		return;
+	}
+	const adjust = () => {
+		textarea.style.height = "auto";
+		textarea.style.height = textarea.scrollHeight + "px";
+	};
+	textarea.addEventListener("input", adjust);
+	adjust();
+}

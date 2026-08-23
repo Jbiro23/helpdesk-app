@@ -10,6 +10,8 @@ document.getElementById("user-name").textContent =
 	currentUser.first_name + " " + currentUser.last_name;
 document.getElementById("logout-btn").addEventListener("click", logout);
 
+enableAutoGrow(document.getElementById("kb-content"));
+
 const alertBox = document.getElementById("alert");
 
 function showAlert(message, type) {

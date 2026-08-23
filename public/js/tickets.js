@@ -23,6 +23,12 @@ const priorityLabels = {
 	visok: "Visok",
 	kriticni: "Kritični",
 };
+const priorityClasses = {
+	nizak: "bg-light text-dark border",
+	srednji: "bg-info text-dark",
+	visok: "bg-warning text-dark",
+	kriticni: "bg-danger",
+};
 
 function formatDate(dateString) {
 	const date = new Date(dateString);
@@ -31,6 +37,18 @@ function formatDate(dateString) {
 		" " +
 		date.toLocaleTimeString("hr-HR", { hour: "2-digit", minute: "2-digit" })
 	);
+}
+
+function formatDateShort(dateString) {
+	const date = new Date(dateString);
+	const d = String(date.getDate()).padStart(2, "0");
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const y = date.getFullYear();
+	const time = date.toLocaleTimeString("hr-HR", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+	return `${d}.${m}.${y}. ${time}`;
 }
 
 async function loadTickets() {
@@ -64,9 +82,9 @@ async function loadTickets() {
                 <td>${ticket.id}</td>
                 <td>${ticket.title}</td>
                 <td>${ticket.category || "-"}</td>
-                <td>${priorityLabels[ticket.priority]}</td>
+                <td><span class="badge ${priorityClasses[ticket.priority]}">${priorityLabels[ticket.priority]}</span></td>
                 <td>${statusBadge}</td>
-                <td>${formatDate(ticket.created_at)}</td>
+                <td class="text-nowrap">${formatDateShort(ticket.created_at)}</td>
             `;
 
 			tbody.appendChild(row);

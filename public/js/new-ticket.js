@@ -5,6 +5,8 @@ document.getElementById("user-name").textContent =
 	user.first_name + " " + user.last_name;
 document.getElementById("logout-btn").addEventListener("click", logout);
 
+enableAutoGrow(document.getElementById("description"));
+
 const alertBox = document.getElementById("alert");
 
 function showAlert(message, type) {

@@ -318,4 +318,33 @@ router.post("/:id/notes", authenticate, requireAgent, async (req, res) => {
 	}
 });
 
+router.get("/meta/stats", authenticate, requireAgent, async (req, res) => {
+	try {
+		const [statusCounts] = await db.query(
+			`SELECT status, COUNT(*) AS count FROM tickets GROUP BY status`,
+		);
+
+		const [priorityCounts] = await db.query(
+			`SELECT priority, COUNT(*) AS count FROM tickets
+             WHERE status != 'zatvorena' GROUP BY priority`,
+		);
+
+		const [avgResolution] = await db.query(
+			`SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) AS avg_hours
+             FROM tickets WHERE status = 'zatvorena'`,
+		);
+
+		const [total] = await db.query("SELECT COUNT(*) AS count FROM tickets");
+
+		res.json({
+			total: total[0].count,
+			byStatus: statusCounts,
+			byPriority: priorityCounts,
+			avgResolutionHours: avgResolution[0].avg_hours,
+		});
+	} catch (error) {
+		res.status(500).json({ message: "Server error", details: error.message });
+	}
+});
+
 module.exports = router;
